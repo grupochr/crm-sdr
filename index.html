@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRM de Leads - SDR</title>
+<!-- build: crm v3 (standalone) -->
+<style>
+  *{box-sizing:border-box}
+  :root{--az:#1f5fae;--az2:#16467f;--bg:#eef2f6;--ink:#1f2a37;--mut:#6b7785;--ln:#e3e8ee;
+        --grn:#15803d;--grnbg:#e6f5ec;--red:#dc2626;--redbg:#fdeaea;--amb:#b45309;--ambbg:#fdf3e3;
+        --vio:#7a3aae;--violbg:#f3ecfa;--gold:#b08d3e}
+  html,body{margin:0;min-height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  a{color:inherit}
+  header{background:linear-gradient(135deg,var(--az),var(--az2));color:#fff;padding:16px 22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:19px;font-weight:800;flex:1}
+  .syncbadge{font-size:11px;font-weight:700;background:rgba(255,255,255,.18);padding:4px 10px;border-radius:20px}
+  .syncbadge.ok{background:#1f8f4d}.syncbadge.saving{background:#b8860b}.syncbadge.off{background:#6b7785}
+  .tabs{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--ln);padding:0 14px;overflow-x:auto}
+  .tab{padding:13px 16px;font-size:14px;font-weight:700;color:var(--mut);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+  .tab.on{color:var(--az);border-bottom-color:var(--az)}
+  main{padding:18px;max-width:1320px;margin:0 auto}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+  .bar input[type=text],.bar select{padding:8px 10px;border:1px solid var(--ln);border-radius:9px;font-size:13px;background:#fff;color:var(--ink)}
+  .bar input[type=text]{min-width:200px;flex:1}
+  .btn{padding:8px 14px;border:none;border-radius:9px;background:var(--az);color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+  .btn:hover{background:var(--az2)}
+  .btn.gh{background:#fff;color:var(--az);border:1px solid var(--az)}
+  .btn.gh:hover{background:#eaf1fb}
+  .btn.sm{padding:5px 9px;font-size:12px}
+  .btn.dng{background:var(--red)}.btn.dng:hover{background:#b91c1c}
+  .btn.ok{background:var(--grn)}.btn.ok:hover{background:#0f6a31}
+  .chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#eef2f7;color:var(--mut);text-decoration:none}
+  .chip.al{background:var(--redbg);color:var(--red)}
+  .chip.ag{background:var(--ambbg);color:var(--amb)}
+  .chip.ok{background:var(--grnbg);color:var(--grn)}
+  .chip.az{background:#e7f0ff;color:var(--az)}
+  .chip.pago{background:var(--grnbg);color:var(--grn)}
+  .chip.pend{background:var(--ambbg);color:var(--amb)}
+  /* FUNIL kanban */
+  .kb{display:grid;gap:12px;overflow-x:auto;padding-bottom:8px}
+  .col{background:#f4f7fb;border:1px solid var(--ln);border-radius:13px;display:flex;flex-direction:column;min-height:140px}
+  .col.dropon{outline:2px dashed var(--az);outline-offset:-3px;background:#eaf2ff}
+  .col h3{margin:0;padding:11px 12px 7px;font-size:12.5px;font-weight:800;display:flex;align-items:center;justify-content:space-between;gap:6px}
+  .col h3 .snm{flex:1}
+  .col h3 .ct{font-size:11px;background:#fff;border:1px solid var(--ln);border-radius:20px;padding:1px 8px;color:var(--mut)}
+  .col .tools{display:flex;gap:3px;padding:0 8px 6px}
+  .col .ic{flex:1;border:1px solid var(--ln);background:#fff;border-radius:7px;font-size:12px;padding:3px 0;cursor:pointer;color:var(--mut);line-height:1.4}
+  .col .ic:hover:not([disabled]){background:#eaf1fb;color:var(--az);border-color:var(--az)}
+  .col .ic[disabled]{opacity:.3;cursor:default}
+  .col .ic.has{color:var(--gold);border-color:var(--gold);background:#fffaf0}
+  .col .ic.on{background:var(--az);color:#fff;border-color:var(--az)}
+  .obsbox{padding:0 8px 8px}
+  .obsbox textarea{width:100%;min-height:62px;border:1px solid var(--gold);border-radius:8px;font-size:12px;padding:7px 8px;font-family:inherit;resize:vertical;background:#fffdf5}
+  .col .body{padding:0 8px 10px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .card{background:#fff;border:1px solid var(--ln);border-radius:10px;padding:9px 10px;box-shadow:0 1px 4px rgba(16,24,40,.05);cursor:grab}
+  .card:active{cursor:grabbing}
+  .card.dragging{opacity:.4}
+  .card .nm{font-size:13px;font-weight:700;margin-bottom:3px}
+  .card .ci{font-size:11px;color:var(--mut)}
+  .card .rw{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;align-items:center}
+  /* tabela */
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 3px 12px rgba(16,24,40,.06)}
+  th,td{text-align:left;padding:9px 11px;font-size:13px;border-bottom:1px solid #f1f4f8}
+  th{background:#f7f9fc;color:var(--mut);font-size:11px;text-transform:uppercase;letter-spacing:.4px;cursor:pointer;white-space:nowrap}
+  tbody tr{cursor:pointer}tbody tr:hover{background:#f7faff}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  /* painel */
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px}
+  .kpi{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:16px}
+  .kpi .v{font-size:24px;font-weight:800;color:var(--az)}
+  .kpi .v.gold{color:var(--gold)}
+  .kpi .l{font-size:12px;color:var(--mut);margin-top:2px}
+  .panel{background:#fff;border:1px solid var(--ln);border-radius:14px;padding:16px;margin-bottom:18px}
+  .panel h3{margin:0 0 12px;font-size:15px}
+  .prm{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .prm label{font-size:12px;color:var(--mut);display:block;margin-bottom:3px}
+  .prm input{width:100%;padding:7px 9px;border:1px solid var(--ln);border-radius:8px;font-size:13px}
+  /* drawer */
+  .ov{position:fixed;inset:0;background:rgba(15,23,42,.4);z-index:1000;display:none}
+  .ov.on{display:block}
+  .drw{position:fixed;top:0;right:0;height:100%;width:440px;max-width:96vw;background:#fff;z-index:1001;box-shadow:-8px 0 30px rgba(0,0,0,.18);transform:translateX(100%);transition:.22s;overflow-y:auto}
+  .drw.on{transform:none}
+  .drw .dh{position:sticky;top:0;background:linear-gradient(135deg,var(--az),var(--az2));color:#fff;padding:16px 18px;z-index:2}
+  .drw .dh h2{margin:0;font-size:16px;padding-right:34px}
+  .drw .dh .x{position:absolute;top:12px;right:14px;background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:8px;font-size:18px;cursor:pointer}
+  .drw .dh .val{font-size:12px;opacity:.92;margin-top:4px}
+  .drw .bd{padding:16px 18px}
+  .sec{margin-bottom:16px}
+  .sec h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--mut)}
+  .fld{margin-bottom:10px}
+  .fld label{display:block;font-size:12px;color:var(--mut);margin-bottom:3px}
+  .fld input,.fld select,.fld textarea{width:100%;padding:8px 10px;border:1px solid var(--ln);border-radius:9px;font-size:13px;font-family:inherit}
+  .fld textarea{min-height:54px;resize:vertical}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;padding:7px 0}
+  .chk input{width:17px;height:17px}
+  .hist{border-left:3px solid var(--az);background:#f7faff;padding:7px 10px;border-radius:0 8px 8px 0;margin-bottom:7px;font-size:13px}
+  .hist .t{font-size:11px;color:var(--mut);margin-bottom:2px}
+  .empty{color:var(--mut);font-size:13px;font-style:italic}
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2a37;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:2000;opacity:0;transition:.2s;pointer-events:none}
+  #toast.on{opacity:1}
+  @media(max-width:560px){.drw{width:100%}}
+</style>
+</head>
+<body>
+<header>
+  <h1>CRM de Leads &mdash; SDR <span id="syncBadge" class="syncbadge off">local</span></h1>
+  <button class="btn" onclick="openNew()">+ Novo lead</button>
+  <button class="btn gh sm" onclick="exportJSON()">Backup</button>
+  <button class="btn gh sm" onclick="document.getElementById('imp').click()">Importar</button>
+  <input id="imp" type="file" accept="application/json" style="display:none" onchange="importJSON(this)">
+</header>
+<div class="tabs">
+  <button class="tab on" data-v="funil" onclick="go('funil')">Funil</button>
+  <button class="tab" data-v="leads" onclick="go('leads')">Lista</button>
+  <button class="tab" data-v="painel" onclick="go('painel')">Painel &amp; Remuneração</button>
+</div>
+<main id="main"></main>
+
+<div class="ov" id="ov" onclick="closeDrw()"></div>
+<div class="drw" id="drw"></div>
+<div id="toast"></div>
+
+<script>
+/* ===================== modelo ===================== */
+const STAGE_DEFS=[{key:"novo",name:"Novo"},{key:"qualificacao",name:"Em qualificação"},{key:"qualificado",name:"Qualificado"},{key:"cotacao",name:"Cotação"},{key:"ativado",name:"Ativado"},{key:"perdido",name:"Perdido"}];
+const PAY_KEYS=["qualificado","cotacao","ativado"];
+const STORE_KEY="chr_crm_db_v1";
+let DB=null, view="funil", selId=null, q="", fMes="", sortK="empresa", sortDir=1, dragId=null;
+const openObs=new Set();
+function stageByKey(k){return DB.stages.find(s=>s.key===k)||DB.stages[0];}
+function stageName(k){const s=DB.stages.find(s=>s.key===k);return s?s.name:k;}
+
+function todayISO(){return new Date().toISOString().slice(0,10);}
+function nowMes(){return new Date().toISOString().slice(0,7);}
+function uid(){return "L"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function money(v){return "R$ "+Math.round(v||0).toLocaleString("pt-BR");}
+function esc(s){return (s||"").toString().replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function blankDB(){return {v:1,updated_at:0,params:{ta:25,tb:60,bon:150},stages:STAGE_DEFS.map(s=>({key:s.key,name:s.name,obs:""})),leads:[]};}
+function newLead(){return {id:uid(),mes:nowMes(),createdAt:Date.now(),empresa:"",cnpj:"",cidade:"",regiao:"",
+  comprador:"",contato:"",marcas:"",vonderTem:false,vonderCanal:"",vonderRep:"",cotacao:false,cotacaoItens:"",cotacaoLink:"",
+  carteira:false,etapaKey:"novo",aprovado:false,ativado:false,ativadoData:"",followup:"",pago:false,pagoData:"",hist:[]};}
+
+/* ===================== remuneração ===================== */
+function leadPay(l){
+  if(l.carteira||!l.aprovado) return 0;
+  if(!PAY_KEYS.includes(l.etapaKey)) return 0;
+  return l.cotacao ? DB.params.tb : DB.params.ta;
+}
+function bonusPay(l){ return (l.ativado && !l.carteira) ? DB.params.bon : 0; }
+function totalPay(l){ return leadPay(l)+bonusPay(l); }
+
+/* ===================== follow-up ===================== */
+function fuInfo(l){
+  if(!l.followup||["ativado","perdido"].includes(l.etapaKey)) return null;
+  const d=Math.round((new Date(l.followup+"T00:00:00")-new Date(todayISO()+"T00:00:00"))/864e5);
+  if(d<0) return {cls:"al",txt:"Atrasado "+(-d)+"d"};
+  if(d===0) return {cls:"ag",txt:"Hoje"};
+  if(d<=3) return {cls:"ag",txt:"Em "+d+"d"};
+  return {cls:"az",txt:l.followup.slice(8,10)+"/"+l.followup.slice(5,7)};
+}
+
+/* ===================== persistência ===================== */
+const N2K={"Novo":"novo","Em qualificação":"qualificacao","Qualificado":"qualificado","Cotação":"cotacao","Ativado":"ativado","Perdido":"perdido"};
+function load(){ try{const r=localStorage.getItem(STORE_KEY); DB=r?JSON.parse(r):seedDB();}catch(e){DB=seedDB();}
+  if(!DB.params)DB.params=blankDB().params;
+  if(DB.params.fixo!=null)delete DB.params.fixo;
+  if(!DB.stages||!DB.stages.length)DB.stages=STAGE_DEFS.map(s=>({key:s.key,name:s.name,obs:""}));
+  DB.stages.forEach(s=>{if(s.obs==null)s.obs="";});
+  DB.leads.forEach(l=>{if(!l.etapaKey){l.etapaKey=N2K[l.etapa]||"novo";delete l.etapa;} if(l.cotacaoLink==null)l.cotacaoLink="";});
+}
+function save(){ DB.updated_at=Date.now(); try{localStorage.setItem(STORE_KEY,JSON.stringify(DB));}catch(e){} setSync("ok"); }
+function setSync(s){const b=document.getElementById("syncBadge");b.className="syncbadge "+(s==="ok"?"ok":"off");b.textContent=s==="ok"?"salvo":"local";setTimeout(()=>{b.className="syncbadge off";b.textContent="local";},1200);}
+function logHist(l,txt){l.hist=l.hist||[];l.hist.unshift({t:Date.now(),txt});}
+
+function seedDB(){
+  const db=blankDB();
+  const ex=[
+    {empresa:"Ferragens Silva Ltda",cnpj:"12.345.678/0001-90",cidade:"Caxias do Sul",regiao:"Serra",comprador:"João Mendes",contato:"(54) 99999-0001",marcas:"Vonder, NewFix",vonderTem:true,vonderCanal:"Osten",vonderRep:"Carlos R.",cotacao:false,carteira:false,etapa:"Qualificado",aprovado:true,ativado:false,followup:todayISO()},
+    {empresa:"Casa do Construtor ME",cnpj:"98.765.432/0001-10",cidade:"Bento Gonçalves",regiao:"Serra",comprador:"Marcia L.",contato:"(54) 98888-0002",marcas:"Vonder, Multifitas",vonderTem:false,vonderCanal:"",vonderRep:"",cotacao:true,cotacaoItens:"Trena 5m x50, jogo bits",cotacaoLink:"",carteira:false,etapa:"Ativado",aprovado:true,ativado:true,ativadoData:todayISO(),followup:""},
+    {empresa:"Depósito Central",cnpj:"11.222.333/0001-44",cidade:"Farroupilha",regiao:"Serra",comprador:"Pedro A.",contato:"(54) 97777-0003",marcas:"Lahuman",vonderTem:false,etapa:"Em qualificação",aprovado:false,ativado:false,carteira:false,cotacao:false,followup:todayISO()},
+    {empresa:"Atacado União",cnpj:"55.666.777/0001-22",cidade:"Caxias do Sul",regiao:"Serra",comprador:"Rita F.",contato:"(54) 96666-0004",marcas:"Vonder",vonderTem:true,vonderCanal:"Dismatal",vonderRep:"Ana P.",cotacao:true,cotacaoItens:"Lonas, fitas",cotacaoLink:"",carteira:false,etapa:"Cotação",aprovado:true,ativado:false,followup:""},
+    {empresa:"Construrural Boa Vista",cidade:"Vacaria",regiao:"Campos de Cima",comprador:"Téo",contato:"(54) 95555-0005",marcas:"NewFix, Vonder",vonderTem:false,etapa:"Novo",aprovado:false,ativado:false,carteira:false,cotacao:false,followup:""},
+  ];
+  ex.forEach(e=>{const l=Object.assign(newLead(),e);if(e.etapa){l.etapaKey=N2K[e.etapa]||"novo";delete l.etapa;}logHist(l,"Lead criado (exemplo)");db.leads.push(l);});
+  return db;
+}
+
+/* ===================== navegação ===================== */
+function go(v){view=v;document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("on",t.dataset.v===v));render();}
+function render(){ if(view==="funil")renderFunil(); else if(view==="leads")renderLeads(); else renderPainel(); }
+
+function searchBar(extra){
+  return `<div class="bar">
+    <input type="text" placeholder="Buscar empresa, comprador, cidade..." value="${esc(q)}" oninput="q=this.value;render()">
+    ${extra||""}
+  </div>`;
+}
+function filtered(){
+  const n=s=>(s||"").toString().toLowerCase();
+  return DB.leads.filter(l=>{
+    if(fMes && l.mes!==fMes) return false;
+    if(!q) return true;
+    const t=n(q);
+    return [l.empresa,l.comprador,l.cidade,l.regiao,l.marcas].some(x=>n(x).includes(t));
+  });
+}
+function monthSel(){
+  const ms=[...new Set(DB.leads.map(l=>l.mes))].sort().reverse();
+  return `<select onchange="fMes=this.value;render()"><option value="">Todos os meses</option>${ms.map(x=>`<option ${x===fMes?"selected":""}>${x}</option>`).join("")}</select>`;
+}
+
+/* ===================== FUNIL ===================== */
+function renderFunil(){
+  const m=document.getElementById("main");
+  const ls=filtered();
+  let cols="";
+  DB.stages.forEach((st,i)=>{
+    const arr=ls.filter(l=>l.etapaKey===st.key);
+    let cards="";
+    arr.forEach(l=>{
+      const fu=fuInfo(l);
+      cards+=`<div class="card" draggable="true" data-id="${l.id}" ondragstart="dstart(event,'${l.id}')" ondragend="dend(event)" onclick="openLead('${l.id}')">
+        <div class="nm">${esc(l.empresa||"(sem nome)")}</div>
+        <div class="ci">${esc(l.cidade||"—")}${l.comprador?" · "+esc(l.comprador):""}</div>
+        <div class="rw">
+          ${l.carteira?'<span class="chip">na carteira</span>':""}
+          ${l.cotacao?'<span class="chip ok">cotação</span>':""}
+          ${l.cotacao&&l.cotacaoLink?'<span class="chip az">📎 foto</span>':""}
+          ${fu?`<span class="chip ${fu.cls}">${fu.txt}</span>`:""}
+        </div>
+      </div>`;
+    });
+    const hasObs=(st.obs||"").trim().length>0;
+    const open=openObs.has(st.key);
+    const obsBox=open?`<div class="obsbox"><textarea placeholder="Observação desta etapa (visível só aqui)..." onchange="setStageObs('${st.key}',this.value)">${esc(st.obs)}</textarea></div>`:"";
+    cols+=`<div class="col" data-et="${st.key}" ondragover="dover(event,this)" ondragleave="this.classList.remove('dropon')" ondrop="ddrop(event,'${st.key}',this)">
+      <h3><span class="snm">${esc(st.name)}</span><span class="ct">${arr.length}</span></h3>
+      <div class="tools">
+        <button class="ic" title="Mover para a esquerda" ${i===0?"disabled":""} onclick="moveStage(${i},-1)">◀</button>
+        <button class="ic" title="Mover para a direita" ${i===DB.stages.length-1?"disabled":""} onclick="moveStage(${i},1)">▶</button>
+        <button class="ic" title="Renomear etapa" onclick="renameStage('${st.key}')">✎</button>
+        <button class="ic ${hasObs?'has':''} ${open?'on':''}" title="Observação da etapa" onclick="toggleObs('${st.key}')">🗒</button>
+      </div>
+      ${obsBox}
+      <div class="body">${cards||'<div class="empty" style="padding:6px 4px">—</div>'}</div>
+    </div>`;
+  });
+  m.innerHTML=searchBar(monthSel())+`<div class="kb" style="grid-template-columns:repeat(${DB.stages.length},minmax(200px,1fr))">${cols}</div>
+    <p style="font-size:12px;color:var(--mut);margin-top:12px">Arraste os cards entre as colunas para mover o lead. Use <b>◀ ▶</b> para reordenar as etapas, <b>✎</b> para renomear e <b>🗒</b> para uma observação (fica oculta até clicar).</p>`;
+}
+function dstart(e,id){dragId=id;e.dataTransfer.effectAllowed="move";e.target.classList.add("dragging");}
+function dend(e){e.target.classList.remove("dragging");}
+function dover(e,col){e.preventDefault();col.classList.add("dropon");}
+function ddrop(e,key,col){e.preventDefault();col.classList.remove("dropon");moveEtapa(dragId,key);}
+function moveEtapa(id,key){
+  const l=DB.leads.find(x=>x.id===id); if(!l||l.etapaKey===key) return;
+  const old=l.etapaKey; l.etapaKey=key;
+  if(key==="cotacao"){l.cotacao=true;}
+  if(key==="ativado"){l.ativado=true; if(!l.ativadoData)l.ativadoData=todayISO();}
+  logHist(l,`Etapa: ${stageName(old)} → ${stageName(key)}`);
+  save();render(); if(selId===id)openLead(id);
+}
+function moveStage(i,dir){const j=i+dir;if(j<0||j>=DB.stages.length)return;const a=DB.stages;[a[i],a[j]]=[a[j],a[i]];save();render();}
+function renameStage(key){const s=stageByKey(key);const nv=prompt("Novo nome da etapa:",s.name);if(nv==null)return;const t=nv.trim();if(!t)return;s.name=t;save();render();if(selId)openLead(selId);}
+function toggleObs(key){if(openObs.has(key))openObs.delete(key);else openObs.add(key);render();}
+function setStageObs(key,val){stageByKey(key).obs=val;save();}
+
+/* ===================== LISTA ===================== */
+function renderLeads(){
+  const m=document.getElementById("main");
+  let ls=filtered().slice();
+  const sidx=k=>DB.stages.findIndex(s=>s.key===k);
+  ls.sort((a,b)=>{let x,y;if(sortK==="etapa"){x=sidx(a.etapaKey);y=sidx(b.etapaKey);}else{x=(a[sortK]||"").toString().toLowerCase();y=(b[sortK]||"").toString().toLowerCase();}return x<y?-sortDir:x>y?sortDir:0;});
+  const rows=ls.map(l=>{
+    const fu=fuInfo(l);
+    return `<tr onclick="openLead('${l.id}')">
+      <td>${esc(l.empresa||"—")}<div style="font-size:11px;color:var(--mut)">${esc(l.cidade||"")}</div></td>
+      <td>${esc(l.comprador||"—")}<div style="font-size:11px;color:var(--mut)">${esc(l.contato||"")}</div></td>
+      <td><span class="chip az">${esc(stageName(l.etapaKey))}</span></td>
+      <td>${l.cotacao?(l.cotacaoLink?`<a class="chip ok" href="${esc(l.cotacaoLink)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">📎 foto</a>`:'<span class="chip ok">sim</span>'):'<span style="color:var(--mut)">—</span>'}</td>
+      <td>${fu?`<span class="chip ${fu.cls}">${fu.txt}</span>`:'<span style="color:var(--mut)">—</span>'}</td>
+    </tr>`;
+  }).join("");
+  m.innerHTML=searchBar(monthSel())+`<table>
+    <thead><tr>
+      <th onclick="sortBy('empresa')">Empresa</th>
+      <th onclick="sortBy('comprador')">Comprador</th>
+      <th onclick="sortBy('etapa')">Etapa</th>
+      <th>Cotação</th>
+      <th onclick="sortBy('followup')">Follow-up</th>
+    </tr></thead>
+    <tbody>${rows||'<tr><td colspan="5" class="empty">Nenhum lead.</td></tr>'}</tbody>
+  </table>`;
+}
+function sortBy(k){if(sortK===k)sortDir*=-1;else{sortK=k;sortDir=1;}render();}
+
+/* ===================== PAINEL ===================== */
+function renderPainel(){
+  const m=document.getElementById("main");
+  const meses=[...new Set(DB.leads.map(l=>l.mes))].sort().reverse();
+  const cur=fMes||nowMes();
+  const all=DB.leads;
+  const qualificados=all.filter(l=>leadPay(l)>0).length;
+  const ativados=all.filter(l=>bonusPay(l)>0).length;
+  const aPagar=all.filter(l=>!l.pago).reduce((a,l)=>a+totalPay(l),0);
+  const pago=all.filter(l=>l.pago).reduce((a,l)=>a+totalPay(l),0);
+  let kpis=`<div class="kpis">
+    <div class="kpi"><div class="v">${all.length}</div><div class="l">Leads no CRM</div></div>
+    <div class="kpi"><div class="v">${qualificados}</div><div class="l">Qualificados (pagos)</div></div>
+    <div class="kpi"><div class="v">${ativados}</div><div class="l">Clientes ativados</div></div>
+    <div class="kpi"><div class="v gold">${money(aPagar)}</div><div class="l">Comissão a pagar</div></div>
+    <div class="kpi"><div class="v">${money(pago)}</div><div class="l">Já pago</div></div>
+  </div>`;
+
+  let trs="";
+  meses.forEach(mes=>{
+    const arr=all.filter(l=>l.mes===mes);
+    const nq=arr.filter(l=>leadPay(l)>0).length;
+    const nc=arr.filter(l=>leadPay(l)>0 && l.cotacao).length;
+    const na=arr.filter(l=>bonusPay(l)>0).length;
+    const rl=arr.reduce((a,l)=>a+leadPay(l),0);
+    const rb=arr.reduce((a,l)=>a+bonusPay(l),0);
+    const tot=rl+rb;
+    const pend=arr.filter(l=>!l.pago).reduce((a,l)=>a+totalPay(l),0);
+    trs+=`<tr>
+      <td><b>${mes}</b></td>
+      <td class="num">${nq}</td><td class="num">${nc}</td><td class="num">${na}</td>
+      <td class="num">${money(rl)}</td><td class="num">${money(rb)}</td>
+      <td class="num"><b>${money(tot)}</b></td>
+      <td>${pend>0?`<span class="chip pend">${money(pend)} a pagar</span>`:'<span class="chip pago">quitado</span>'}</td>
+    </tr>`;
+  });
+  const tabela=`<div class="panel"><h3>Resumo mensal de comissões</h3>
+    <table><thead><tr>
+      <th>Mês</th><th class="num">Qualif.</th><th class="num">c/ cotação</th><th class="num">Ativados</th>
+      <th class="num">R$ Lead</th><th class="num">R$ Bônus</th><th class="num">Total</th><th>Status</th>
+    </tr></thead><tbody>${trs||'<tr><td colspan="8" class="empty">Sem dados.</td></tr>'}</tbody></table>
+    <p style="font-size:11px;color:var(--mut);margin:10px 2px 0">Total = R$ Lead + R$ Bônus. O valor é atribuído ao mês de cadastro do lead. Marque "Remuneração paga" na ficha de cada lead para baixar a pendência.</p>
+  </div>`;
+
+  const arrCur=all.filter(l=>l.mes===cur);
+  const metaq=arrCur.filter(l=>leadPay(l)>0).length, metac=arrCur.filter(l=>leadPay(l)>0&&l.cotacao).length, metaa=arrCur.filter(l=>bonusPay(l)>0).length;
+  function barRow(lb,val,meta){const pct=Math.min(100,Math.round(val/meta*100));return `<div style="margin:8px 0"><div style="font-size:12px;display:flex;justify-content:space-between"><span>${lb}</span><span><b>${val}</b> / ${meta}</span></div><div style="background:#eef2f7;border-radius:6px;height:9px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${pct>=100?'var(--grn)':'var(--az)'}"></div></div></div>`;}
+  const metas=`<div class="panel"><h3>Metas do mês (${cur})</h3>
+    ${barRow("Leads qualificados",metaq,40)}
+    ${barRow("— com cotação",metac,15)}
+    ${barRow("Clientes ativados",metaa,4)}
+  </div>`;
+
+  const p=DB.params;
+  const params=`<div class="panel"><h3>Parâmetros de comissão</h3>
+    <div class="prm">
+      <div><label>Tier A — Lead (R$)</label><input type="number" value="${p.ta}" onchange="setParam('ta',this.value)"></div>
+      <div><label>Tier B — c/ cotação (R$)</label><input type="number" value="${p.tb}" onchange="setParam('tb',this.value)"></div>
+      <div><label>Bônus ativação (R$)</label><input type="number" value="${p.bon}" onchange="setParam('bon',this.value)"></div>
+    </div>
+    <p style="font-size:11px;color:var(--mut);margin:10px 2px 0">Pagamento por lead: só conta se <b>aprovado</b> e <b>não está na carteira</b>. Tier B substitui o A quando há cotação. Bônus quando ativado.</p>
+  </div>`;
+
+  m.innerHTML=`<div class="bar">${monthSel()}<button class="btn gh sm" onclick="exportPDF()">⤓ PDF</button><button class="btn gh sm" onclick="exportCSV()">⤓ Excel</button><button class="btn dng sm" onclick="wipe()">Limpar exemplos</button></div>`+kpis+metas+tabela+params;
+}
+function setParam(k,v){DB.params[k]=parseFloat(v)||0;save();render();}
+
+/* ===================== EXPORT comissões ===================== */
+function reportScope(){return DB.leads.filter(l=>(!fMes||l.mes===fMes));}
+function download(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{a.remove();URL.revokeObjectURL(a.href);},100);}
+function csvCell(v){v=(v==null?"":v).toString();if(/[";\n]/.test(v))v='"'+v.replace(/"/g,'""')+'"';return v;}
+function exportCSV(){
+  const det=reportScope().filter(l=>totalPay(l)>0);
+  const head=["Mês","Empresa","Cidade","Comprador","Etapa","Cotação","Na carteira","Aprovado","Ativado","R$ Lead","R$ Bônus","R$ Total","Pago","Data pagto","Link foto"];
+  const rows=det.map(l=>[l.mes,l.empresa,l.cidade,l.comprador,stageName(l.etapaKey),l.cotacao?"Sim":"Não",l.carteira?"Sim":"Não",l.aprovado?"Sim":"Não",l.ativado?"Sim":"Não",leadPay(l),bonusPay(l),totalPay(l),l.pago?"Sim":"Não",l.pagoData||"",l.cotacaoLink||""]);
+  const tl=det.reduce((a,l)=>a+leadPay(l),0),tb=det.reduce((a,l)=>a+bonusPay(l),0),tt=det.reduce((a,l)=>a+totalPay(l),0);
+  rows.push([]);
+  rows.push(["TOTAL","","","","","","","","",tl,tb,tt,"","",""]);
+  const csv=[head,...rows].map(r=>r.map(csvCell).join(";")).join("\r\n");
+  download(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}),"comissoes_sdr_"+(fMes||"todos")+"_"+todayISO()+".csv");
+  toast("Excel (CSV) gerado");
+}
+function exportPDF(){
+  const scope=reportScope();
+  const det=scope.filter(l=>totalPay(l)>0);
+  const meses=[...new Set(scope.map(l=>l.mes))].sort();
+  const sumRows=meses.map(mes=>{
+    const arr=scope.filter(l=>l.mes===mes);
+    const nq=arr.filter(l=>leadPay(l)>0).length, nc=arr.filter(l=>leadPay(l)>0&&l.cotacao).length, na=arr.filter(l=>bonusPay(l)>0).length;
+    const rl=arr.reduce((a,l)=>a+leadPay(l),0), rb=arr.reduce((a,l)=>a+bonusPay(l),0);
+    return `<tr><td>${mes}</td><td class=n>${nq}</td><td class=n>${nc}</td><td class=n>${na}</td><td class=n>${money(rl)}</td><td class=n>${money(rb)}</td><td class=n>${money(rl+rb)}</td></tr>`;
+  }).join("");
+  const tl=det.reduce((a,l)=>a+leadPay(l),0), tb=det.reduce((a,l)=>a+bonusPay(l),0);
+  const detRows=det.map(l=>`<tr><td>${esc(l.mes)}</td><td>${esc(l.empresa)}</td><td>${esc(l.cidade)}</td><td>${esc(stageName(l.etapaKey))}</td><td>${l.cotacao?"Sim":"Não"}</td><td class=n>${money(leadPay(l))}</td><td class=n>${money(bonusPay(l))}</td><td class=n>${money(totalPay(l))}</td><td>${l.pago?"Pago":"A pagar"}</td></tr>`).join("");
+  const scopeLbl=fMes?("Mês "+fMes):"Todos os meses";
+  const html=`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório de Comissões — CRM SDR</title>
+<style>body{font-family:Arial,Helvetica,sans-serif;color:#1f2a37;margin:24px}h1{color:#16467f;font-size:20px;margin:0 0 2px}.sub{color:#6b7785;font-size:12px;margin-bottom:18px}h2{font-size:14px;color:#16467f;margin:22px 0 8px}table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px}th,td{border:1px solid #d6d6d6;padding:6px 8px;text-align:left}th{background:#16467f;color:#fff}td.n,th.n{text-align:right}tr:nth-child(even) td{background:#f4f7fb}.tot td{font-weight:bold;background:#eef2f7}@media print{body{margin:0}.noprint{display:none}}</style></head>
+<body>
+<h1>Relatório de Comissões — CRM SDR</h1>
+<div class="sub">${scopeLbl} · Gerado em ${new Date().toLocaleString("pt-BR")}</div>
+<button class="noprint" onclick="window.print()" style="margin-bottom:14px;padding:8px 14px;border:none;border-radius:8px;background:#1f5fae;color:#fff;font-weight:700;cursor:pointer">Salvar como PDF / Imprimir</button>
+<h2>Resumo mensal</h2>
+<table><thead><tr><th>Mês</th><th class="n">Qualif.</th><th class="n">c/ cotação</th><th class="n">Ativados</th><th class="n">R$ Lead</th><th class="n">R$ Bônus</th><th class="n">Total</th></tr></thead>
+<tbody>${sumRows||'<tr><td colspan="7">Sem dados.</td></tr>'}</tbody>
+<tfoot><tr class="tot"><td>TOTAL</td><td class="n"></td><td class="n"></td><td class="n"></td><td class="n">${money(tl)}</td><td class="n">${money(tb)}</td><td class="n">${money(tl+tb)}</td></tr></tfoot></table>
+<h2>Detalhe por lead</h2>
+<table><thead><tr><th>Mês</th><th>Empresa</th><th>Cidade</th><th>Etapa</th><th>Cotação</th><th class="n">R$ Lead</th><th class="n">R$ Bônus</th><th class="n">Total</th><th>Status</th></tr></thead>
+<tbody>${detRows||'<tr><td colspan="9">Sem comissões no período.</td></tr>'}</tbody></table>
+</body></html>`;
+  const w=window.open("","_blank");
+  if(!w){alert("Permita pop-ups para gerar o PDF.");return;}
+  w.document.open();w.document.write(html);w.document.close();w.focus();
+  setTimeout(()=>{try{w.print();}catch(e){}},500);
+}
+
+/* ===================== DRAWER ===================== */
+function openNew(){const l=newLead();logHist(l,"Lead criado");DB.leads.unshift(l);save();openLead(l.id);}
+function openLead(id){
+  selId=id; const l=DB.leads.find(x=>x.id===id); if(!l)return;
+  const histHtml=(l.hist||[]).map(h=>`<div class="hist"><div class="t">${new Date(h.t).toLocaleString("pt-BR")}</div>${esc(h.txt)}</div>`).join("")||'<div class="empty">Sem registros.</div>';
+  const cotLink=l.cotacaoLink?`<a href="${esc(l.cotacaoLink)}" target="_blank" rel="noopener" style="color:var(--az);font-weight:700;text-decoration:none">↗ abrir</a>`:"";
+  const cotBlock=l.cotacao?`<div class="fld"><label>Itens da cotação</label><textarea onchange="upd('${id}','cotacaoItens',this.value)">${esc(l.cotacaoItens)}</textarea></div>
+        <div class="fld"><label>Link da foto da cotação (Drive) ${cotLink}</label><input type="url" placeholder="Cole aqui o link da foto no Drive..." value="${esc(l.cotacaoLink)}" onchange="upd('${id}','cotacaoLink',this.value)"></div>`:"";
+  const etOpts=DB.stages.map(s=>`<option value="${s.key}" ${l.etapaKey===s.key?"selected":""}>${esc(s.name)}</option>`).join("");
+  document.getElementById("drw").innerHTML=`
+    <div class="dh">
+      <button class="x" onclick="closeDrw()">&times;</button>
+      <h2>${esc(l.empresa||"Novo lead")}</h2>
+      <div class="val">Etapa: ${esc(stageName(l.etapaKey))}</div>
+    </div>
+    <div class="bd">
+      <div class="sec"><h4>Identificação</h4>
+        <div class="fld"><label>Empresa / Razão social</label><input value="${esc(l.empresa)}" onchange="upd('${id}','empresa',this.value)"></div>
+        <div class="row2">
+          <div class="fld"><label>CNPJ</label><input value="${esc(l.cnpj)}" onchange="upd('${id}','cnpj',this.value)"></div>
+          <div class="fld"><label>Mês (ref.)</label><input value="${esc(l.mes)}" onchange="upd('${id}','mes',this.value)"></div>
+        </div>
+        <div class="row2">
+          <div class="fld"><label>Cidade</label><input value="${esc(l.cidade)}" onchange="upd('${id}','cidade',this.value)"></div>
+          <div class="fld"><label>Região</label><input value="${esc(l.regiao)}" onchange="upd('${id}','regiao',this.value)"></div>
+        </div>
+      </div>
+      <div class="sec"><h4>Comprador ★</h4>
+        <div class="row2">
+          <div class="fld"><label>Nome do comprador</label><input value="${esc(l.comprador)}" onchange="upd('${id}','comprador',this.value)"></div>
+          <div class="fld"><label>Contato direto</label><input value="${esc(l.contato)}" onchange="upd('${id}','contato',this.value)"></div>
+        </div>
+      </div>
+      <div class="sec"><h4>Qualificação ★</h4>
+        <div class="fld"><label>Marcas de interesse (Vonder / Lahuman / Multifitas / NewFix)</label><input value="${esc(l.marcas)}" onchange="upd('${id}','marcas',this.value)"></div>
+        <div class="chk"><input type="checkbox" ${l.vonderTem?"checked":""} onchange="upd('${id}','vonderTem',this.checked)"> Já tem atendimento Vonder</div>
+        <div class="row2">
+          <div class="fld"><label>Canal Vonder</label><select onchange="upd('${id}','vonderCanal',this.value)">
+            <option value="" ${!l.vonderCanal?"selected":""}>—</option>
+            <option ${l.vonderCanal==="Osten"?"selected":""}>Osten</option>
+            <option ${l.vonderCanal==="Dismatal"?"selected":""}>Dismatal</option>
+          </select></div>
+          <div class="fld"><label>Representante atual</label><input value="${esc(l.vonderRep)}" onchange="upd('${id}','vonderRep',this.value)"></div>
+        </div>
+        <div class="chk"><input type="checkbox" ${l.cotacao?"checked":""} onchange="upd('${id}','cotacao',this.checked)"> Recebeu cotação de interesse</div>
+        ${cotBlock}
+      </div>
+      <div class="sec"><h4>Funil &amp; status</h4>
+        <div class="fld"><label>Etapa</label><select onchange="moveEtapa('${id}',this.value)">${etOpts}</select></div>
+        <div class="fld"><label>Próximo contato (follow-up)</label><input type="date" value="${esc(l.followup)}" onchange="upd('${id}','followup',this.value)"></div>
+        <div class="chk"><input type="checkbox" ${l.carteira?"checked":""} onchange="upd('${id}','carteira',this.checked)"> Já está na carteira (não paga)</div>
+        <div class="chk"><input type="checkbox" ${l.aprovado?"checked":""} onchange="upd('${id}','aprovado',this.checked)"> <b>Aprovado pelo gestor</b> (libera pagamento)</div>
+        <div class="chk"><input type="checkbox" ${l.ativado?"checked":""} onchange="upd('${id}','ativado',this.checked)"> Cliente ativado (1º pedido faturado)</div>
+      </div>
+      <div class="sec"><h4>Remuneração</h4>
+        <div class="chk"><input type="checkbox" ${l.pago?"checked":""} onchange="upd('${id}','pago',this.checked)"> <b>Remuneração paga</b>${l.pagoData?` <span style="color:var(--mut);font-size:12px">em ${l.pagoData}</span>`:""}</div>
+      </div>
+      <div class="sec"><h4>Histórico / anotações</h4>
+        <div class="fld"><textarea id="noteBox" placeholder="Escreva uma anotação e clique em adicionar..."></textarea></div>
+        <button class="btn gh sm" onclick="addNote('${id}')">+ Adicionar nota</button>
+        <div style="margin-top:12px">${histHtml}</div>
+      </div>
+      <button class="btn dng sm" onclick="delLead('${id}')">Excluir lead</button>
+    </div>`;
+  document.getElementById("ov").classList.add("on");
+  document.getElementById("drw").classList.add("on");
+}
+function closeDrw(){selId=null;document.getElementById("ov").classList.remove("on");document.getElementById("drw").classList.remove("on");render();}
+function upd(id,k,val){
+  const l=DB.leads.find(x=>x.id===id); if(!l)return;
+  l[k]=val;
+  if(k==="pago"){l.pagoData=val?todayISO():"";}
+  if(k==="ativado"){if(val&&!l.ativadoData)l.ativadoData=todayISO();logHist(l,val?"Cliente ativado":"Ativação removida");}
+  if(k==="aprovado"){logHist(l,val?"Aprovado pelo gestor":"Aprovação removida");}
+  save();
+  if(["cotacao","carteira","aprovado","ativado","pago","empresa","cotacaoLink"].includes(k))openLead(id);
+}
+function addNote(id){
+  const l=DB.leads.find(x=>x.id===id); const box=document.getElementById("noteBox");
+  const txt=(box.value||"").trim(); if(!txt)return;
+  logHist(l,txt); save(); openLead(id); toast("Nota adicionada");
+}
+function delLead(id){ if(!confirm("Excluir este lead?"))return; DB.leads=DB.leads.filter(x=>x.id!==id); save(); closeDrw(); toast("Lead excluído"); }
+function wipe(){ if(!confirm("Apagar TODOS os leads (inclusive exemplos)? Faça um backup antes."))return; DB.leads=[]; save(); render(); toast("Lista limpa"); }
+
+/* ===================== backup ===================== */
+function exportJSON(){const blob=new Blob([JSON.stringify(DB,null,2)],{type:"application/json"});download(blob,"crm_sdr_backup_"+todayISO()+".json");}
+function importJSON(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{try{const d=JSON.parse(e.target.result);if(d&&d.leads){DB=d;save();load();render();toast("Backup importado");}else alert("Arquivo inválido");}catch(err){alert("Erro ao ler arquivo");}};r.readAsText(f);inp.value="";}
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");setTimeout(()=>e.classList.remove("on"),1800);}
+
+/* ===================== init ===================== */
+load();render();
+</script>
+</body>
+</html>
